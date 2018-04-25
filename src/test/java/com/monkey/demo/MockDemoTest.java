@@ -1,10 +1,13 @@
 package com.monkey.demo;
 
 import org.junit.Test;
+import org.mockito.ArgumentMatcher;
+import org.mockito.Mock;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
@@ -92,6 +95,67 @@ public class MockDemoTest {
         assertEquals("Beijing",account.getRailwayTicket().getDestination());
     }
 
+    //模拟方法体抛出异常
+    @Test(expected = RuntimeException.class)
+    public void doThrow_when(){
+        List list=mock(List.class);
+        doThrow(new RuntimeException()).when(list).add(1);
+        list.add(1);
+    }
 
+    //参数匹配
+    @Test
+    public void with_arguments(){
+        Comparable comparable=mock(Comparable.class);
+        //预设根据不同的参数返回不同的结果
+        when(comparable.compareTo("Test")).thenReturn(1);
+        when(comparable.compareTo("Omg")).thenReturn(2);
+        assertEquals(1,comparable.compareTo("Test"));
+        assertEquals(2,comparable.compareTo("Omg"));
+        //对于没有预设的情况会返回默认值
+        assertEquals(0,comparable.compareTo("Not stub"));
+    }
+
+    //除了匹配制定参数外，还可以匹配自己想要的任意参数
+    @Test
+    public void with_unspecified_arguments(){
+        List list=mock(List.class);
+        //匹配任意参数
+        when(list.get(anyInt())).thenReturn(1);
+        when(list.contains(argThat(new IsValid()))).thenReturn(true);
+
+        assertEquals(1,list.get(1));
+        assertEquals(1,list.get(999));
+
+        assertTrue(list.contains(1));
+        assertTrue(!list.contains(3));
+    }
+
+    private class IsValid extends ArgumentMatcher<List>{
+        @Override
+        public boolean matches(Object o) {
+            return o==1||o==2;
+        }
+    }
+
+    //注意：如果你使用了参数匹配，那么所有的参数都必须通过matchers来匹配，如下代码：
+    @Test
+    public void all_arguments_provided_by_matchers(){
+        Comparator comparator=mock(Comparator.class);
+        comparator.compare("nihao","hello");
+        //如果你使用了参数匹配，那么所有的参数都必须通过matchers来匹配
+        verify(comparator).compare(anyString(),eq("hello"));
+        //下面的为无效的参数匹配使用
+        //verify(comparator).compare(anyString(),"hello");
+    }
+
+    //自定义参数匹配
+    @Test
+    public void argumentMatchersTest(){
+        //创建mock对象
+        List<String> list=mock(List.class);
+
+
+    }
 
 }
