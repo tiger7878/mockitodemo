@@ -1,12 +1,14 @@
 package com.monkey.demo;
 
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -155,7 +157,70 @@ public class MockDemoTest {
         //创建mock对象
         List<String> list=mock(List.class);
 
+        //argThat(Matches<T> matcher)方法用来应用自定义的规则，可以传入任何实现Matcher接口的实现类。
+        when(list.addAll(argThat(new IsListofTwoElements()))).thenReturn(true);
 
+//        list.addAll(Arrays.asList("one","two","three"));
+        list.addAll(Arrays.asList("one","two"));
+        //IsListofTwoElements用来匹配size为2的List，因为例子传入List为三个元素，所以此时将失败。
+        verify(list).addAll(argThat(new IsListofTwoElements()));
     }
+
+    class IsListofTwoElements extends ArgumentMatcher<List>
+    {
+        @Override
+        public boolean matches(Object list) {
+            return((List)list).size()==2;
+        }
+    }
+
+    //捕获参数来进一步断言
+    //较复杂的参数匹配器会降低代码的可读性，有些地方使用参数捕获器更加合适。
+    @Test
+    public void capturing_args(){
+        PersonDao personDao=mock(PersonDao.class);
+        PersonService personService=new PersonService(personDao);
+
+        ArgumentCaptor<Person> argument=ArgumentCaptor.forClass(Person.class);
+        personService.update(1,"jack");
+        verify(personDao).update(argument.capture());
+        assertEquals(1,argument.getValue().getId());
+        assertEquals("jack",argument.getValue().getName());
+    }
+
+    class Person{
+        private int id;
+        private String name;
+
+        public Person(int id, String name) {
+            this.id = id;
+            this.name = name;
+        }
+
+        public int getId() {
+            return id;
+        }
+
+        public String getName() {
+            return name;
+        }
+    }
+
+    interface PersonDao{
+        public void update(Person person);
+    }
+
+    class PersonService{
+        private PersonDao personDao;
+
+        public PersonService(PersonDao personDao) {
+            this.personDao = personDao;
+        }
+
+        public void update(int id,String name){
+            personDao.update(new Person(id,name));
+        }
+    }
+
 
 }
